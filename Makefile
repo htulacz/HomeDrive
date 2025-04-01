@@ -1,5 +1,5 @@
 clean:
-	rm -fr uploads HomeDrive*
+	rm -fr upload HomeDrive*
 
 all:
 	go build
