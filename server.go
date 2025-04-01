@@ -121,13 +121,14 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.MaxMultipartMemory = 200 << 20
 	r.LoadHTMLGlob("index.html")
 	r.Static("/upload", "./upload")
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{"title": "Upload File"})
 	})
 
-	r.POST("/upload/*directory", upload)
+	r.POST("/upload", upload)
 	r.POST("/create-directory", makeDirectory)
 	r.GET("/directories", getDirectories)
 	r.GET("/directoryContent", getContent)
