@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galeria zdjęć</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+        h1, h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        input[type="file"], input[type="text"], button, select {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .gallery img {
+            max-width: 200px;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Utwórz nowy katalog</h1>
+    <form id="createDirectoryForm">
+        <input type="text" id="directoryName" name="name" placeholder="Podaj nazwę katalogu" required>
+        <button type="submit">Utwórz katalog</button>
+    </form>
+    
+    <h2>Prześlij plik do katalogu</h2>
+    <select id="directory" name="directory" required>
+        <option value="">Wybierz katalog</option>
+    </select>
+    <input type="file" id="files" name="files" multiple required>
+    <button type="submit" id="submitBtn">Prześlij pliki</button>
+
+    <h2>Przeglądaj zawartość katalogu</h2>
+    <select id="viewDirectory" name="directory" required>
+        <option value="">Wybierz katalog</option>
+    </select>
+    <button type="button" id="viewBtn">Zobacz zawartość</button>
+
+    <div id="directoryContent" class="gallery"></div>
+
+    <div id="message" class="message"></div>
+</div>
+
+<script>
+    // Funkcja ładowania katalogów
+    function loadDirectories() {
+        fetch('/directories')
+            .then(response => response.json())
+            .then(data => {
+                const directorySelect = document.getElementById('directory');
+                const viewDirectorySelect = document.getElementById('viewDirectory');
+
+                directorySelect.innerHTML = '<option value="">Wybierz katalog</option>';
+                viewDirectorySelect.innerHTML = '<option value="">Wybierz katalog</option>';
+
+                if (data.directories) {
+                    data.directories.forEach(directory => {
+                        const option = document.createElement('option');
+                        option.value = directory;
+                        option.textContent = directory;
+                        directorySelect.appendChild(option);
+                        viewDirectorySelect.appendChild(option.cloneNode(true));
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Błąd podczas ładowania katalogów:', error);
+            });
+    }
+
+    loadDirectories();
+
+    // Tworzenie nowego katalogu
+    document.getElementById('createDirectoryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append("name", document.getElementById("directoryName").value);
+
+        fetch('/create-directory', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                document.getElementById('message').innerHTML = '<span style="color: green;">' + data.message + '</span>';
+            } else if (data.error) {
+                document.getElementById('message').innerHTML = '<span style="color: red;">' + data.error + '</span>';
+            }
+            loadDirectories();
+        })
+        .catch(error => {
+            document.getElementById('message').innerHTML = '<span style="color: red;">Błąd podczas tworzenia katalogu.</span>';
+        });
+    });
+
+    // Wysyłanie plików
+    document.getElementById('submitBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        formData.append("directory", document.getElementById("directory").value);
+
+        const files = document.getElementById("files").files;
+        for (let i = 0; i < files.length; i++) {
+            formData.append("files", files[i]);
+        }
+
+        fetch('/upload', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                document.getElementById('message').innerHTML = '<span style="color: green;">' + data.message + '</span>';
+            } else if (data.error) {
+                document.getElementById('message').innerHTML = '<span style="color: red;">' + data.error + '</span>';
+            }
+        })
+        .catch(error => {
+            document.getElementById('message').innerHTML = '<span style="color: red;">Błąd podczas przesyłania plików.</span>';
+        });
+    });
+
+    // Zobacz zawartość katalogu
+    // Zobacz zawartość katalogu
+document.getElementById('viewBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+
+    const directory = document.getElementById("viewDirectory").value;
+
+    fetch(`/directoryContent?directory=${directory}`)
+        .then(response => response.json())  // Oczekujemy JSON z listą obrazków
+        .then(data => {
+            // Usuwamy formularze i inne elementy
+            document.body.innerHTML = "";  // Zamieniamy całą zawartość strony na HTML od serwera
+
+            // Tworzymy widok galerii
+            const galleryContainer = document.createElement("div");
+            galleryContainer.classList.add("gallery");
+            
+            // Przechowujemy katalog w zakresie globalnym
+            window.directory = directory;
+
+            data.files.forEach((file, index) => {
+                const imgButton = document.createElement("button");
+                const imgElement = document.createElement("img");
+                imgElement.src = "/upload/" + directory + "/" + file;
+                imgElement.alt = file;
+                imgElement.style.width = "300px";
+                imgElement.style.margin = "10px";
+                imgButton.appendChild(imgElement);
+
+                imgButton.onclick = function() {
+                    showImage(index, directory);
+                };
+
+                galleryContainer.appendChild(imgButton);
+            });
+
+            // Przycisk powrotu na stronę główną
+            const backButton = document.createElement("button");
+            backButton.textContent = "Powrót do menu";
+            backButton.onclick = function() {
+                window.location.href = "/";  // Przekierowanie na stronę główną
+            };
+
+            // Wstawiamy galerię i przycisk powrotu do strony głównej
+            document.body.appendChild(galleryContainer);
+            document.body.appendChild(backButton);
+        })
+        .catch(error => {
+            console.error('Błąd podczas ładowania zawartości katalogu:', error);
+        });
+});
+
+// Funkcja do wyświetlania tylko jednego obrazka
+function showImage(index, directory) {
+    fetch(`/directoryContent?directory=${directory}`)
+        .then(response => response.json())  // Oczekujemy JSON z listą obrazków
+        .then(data => {
+            // Usuwamy całą zawartość strony
+            document.body.innerHTML = "";
+
+            // Tworzymy widok tylko jednego obrazka
+            const imageContainer = document.createElement("div");
+
+            const imgElement = document.createElement("img");
+            imgElement.src = "/upload/" + directory + "/" + data.files[index];
+            imgElement.alt = data.files[index];
+            imgElement.style.width = "600px";
+            imgElement.style.margin = "10px";
+            imageContainer.appendChild(imgElement);
+
+            // Przycisk powrotu do galerii
+            const backButton = document.createElement("button");
+            backButton.textContent = "Powrót do menu";
+            backButton.onclick = function() {
+                window.location.href = "/";  // Powrót do strony głównej
+            };
+
+            // Przycisk do następnego zdjęcia
+            const nextButton = document.createElement("button");
+            nextButton.textContent = "Następne zdjęcie";
+            nextButton.onclick = function() {
+                if (index < data.files.length - 1) {
+                    showImage(index + 1, directory);  // Przejście do następnego zdjęcia
+                }
+            };
+
+            // Przycisk do poprzedniego zdjęcia
+            const prevButton = document.createElement("button");
+            prevButton.textContent = "Poprzednie zdjęcie";
+            prevButton.onclick = function() {
+                if (index > 0) {
+                    showImage(index - 1, directory);  // Przejście do poprzedniego zdjęcia
+                }
+            };
+
+            // Dodajemy przyciski do kontenera
+            imageContainer.appendChild(backButton);
+            imageContainer.appendChild(prevButton);
+            imageContainer.appendChild(nextButton);
+
+            // Wstawiamy obrazek i przyciski
+            document.body.appendChild(imageContainer);
+        })
+        .catch(error => {
+            console.error('Błąd podczas ładowania zdjęcia:', error);
+        });
+}
+
+</script>
+
+</body>
+</html>
