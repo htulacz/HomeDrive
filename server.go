@@ -2,18 +2,16 @@ package main
 
 import (
 	"fmt"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
 
 const uploadDir = "upload"
-
-type GalleryData struct {
-	Images []string
-}
 
 func upload(c *gin.Context) {
 	path_rest := c.PostForm("directory")
@@ -29,7 +27,6 @@ func upload(c *gin.Context) {
 	}
 
 	files := form.File["files"]
-
 	if len(files) == 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No files selected"})
 		return
@@ -40,18 +37,30 @@ func upload(c *gin.Context) {
 		os.MkdirAll(dirPath, os.ModePerm)
 	}
 
+	var wg sync.WaitGroup
 	var uploadedFiles []string
+	var mutex sync.Mutex
+
 	for _, file := range files {
-		filePath := filepath.Join(dirPath, file.Filename)
+		wg.Add(1)
 
-		err := c.SaveUploadedFile(file, filePath)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Couldn't save one or more files"})
-			return
-		}
+		go func(file *multipart.FileHeader) {
+			defer wg.Done()
 
-		uploadedFiles = append(uploadedFiles, "/uploads/"+path_rest+"/"+file.Filename)
+			filePath := filepath.Join(dirPath, file.Filename)
+			err := c.SaveUploadedFile(file, filePath)
+			if err != nil {
+				fmt.Println("Error saving file:", err)
+				return
+			}
+
+			mutex.Lock()
+			uploadedFiles = append(uploadedFiles, "/upload/"+path_rest+"/"+file.Filename)
+			mutex.Unlock()
+		}(file)
 	}
+
+	wg.Wait()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Files uploaded", "files": uploadedFiles})
 }

@@ -167,7 +167,6 @@
     });
 
     // Zobacz zawartość katalogu
-    // Zobacz zawartość katalogu
 document.getElementById('viewBtn').addEventListener('click', function(e) {
     e.preventDefault();
 
@@ -178,40 +177,9 @@ document.getElementById('viewBtn').addEventListener('click', function(e) {
         .then(data => {
             // Usuwamy formularze i inne elementy
             document.body.innerHTML = "";  // Zamieniamy całą zawartość strony na HTML od serwera
-
-            // Tworzymy widok galerii
-            const galleryContainer = document.createElement("div");
-            galleryContainer.classList.add("gallery");
-            
-            // Przechowujemy katalog w zakresie globalnym
             window.directory = directory;
 
-            data.files.forEach((file, index) => {
-                const imgButton = document.createElement("button");
-                const imgElement = document.createElement("img");
-                imgElement.src = "/upload/" + directory + "/" + file;
-                imgElement.alt = file;
-                imgElement.style.width = "300px";
-                imgElement.style.margin = "10px";
-                imgButton.appendChild(imgElement);
-
-                imgButton.onclick = function() {
-                    showImage(index, directory);
-                };
-
-                galleryContainer.appendChild(imgButton);
-            });
-
-            // Przycisk powrotu na stronę główną
-            const backButton = document.createElement("button");
-            backButton.textContent = "Powrót do menu";
-            backButton.onclick = function() {
-                window.location.href = "/";  // Przekierowanie na stronę główną
-            };
-
-            // Wstawiamy galerię i przycisk powrotu do strony głównej
-            document.body.appendChild(galleryContainer);
-            document.body.appendChild(backButton);
+            showImage(0, window.directory);
         })
         .catch(error => {
             console.error('Błąd podczas ładowania zawartości katalogu:', error);
