@@ -175,11 +175,13 @@ document.getElementById('viewBtn').addEventListener('click', function(e) {
     fetch(`/directoryContent?directory=${directory}`)
         .then(response => response.json())  // Oczekujemy JSON z listą obrazków
         .then(data => {
-            // Usuwamy formularze i inne elementy
-            document.body.innerHTML = "";  // Zamieniamy całą zawartość strony na HTML od serwera
-            window.directory = directory;
-
-            showImage(0, window.directory);
+            if (data.files){
+                document.body.innerHTML = "";  // Zamieniamy całą zawartość strony na HTML od serwera
+                window.directory = directory;
+                showImage(0, window.directory);
+            } else {
+                document.getElementById('message').innerHTML = '<span style="color: orange;">Wybrany katalog jest pusty.</span>'
+            }
         })
         .catch(error => {
             console.error('Błąd podczas ładowania zawartości katalogu:', error);
@@ -229,10 +231,39 @@ function showImage(index, directory) {
                 }
             };
 
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Usuń zdjęcie";
+            deleteButton.onclick = async function() {
+                try {
+                    const res = await fetch(`/delete?directory=${directory}&photo_name=${data.files[index]}`, {
+                        method: "DELETE"
+                    });
+                    const json = await res.json();
+
+                    if (!res.ok) {
+                        alert("Błąd podczas usuwania zdjęcia: " + json.error);
+                        return;
+                    }
+
+                    data.files.splice(index, 1);
+
+                    if (data.files.length === 0) {
+                        alert("Wszystkie zdjęcia usunięte. Powrót do menu.");
+                        window.location.href = "/";
+                    } else {
+                        showImage(Math.min(index, data.files.length - 1), directory);
+                    }
+                } catch (err) {
+                    console.error("Fetch delete error:", err);
+                    alert("Wystąpił błąd przy usuwaniu zdjęcia.");
+                }
+            };
+
             // Dodajemy przyciski do kontenera
             imageContainer.appendChild(backButton);
             imageContainer.appendChild(prevButton);
             imageContainer.appendChild(nextButton);
+            imageContainer.appendChild(deleteButton);
 
             // Wstawiamy obrazek i przyciski
             document.body.appendChild(imageContainer);

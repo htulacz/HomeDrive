@@ -124,6 +124,30 @@ func getContent(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"files": fileNames})
 }
 
+func deletePhoto(c *gin.Context) {
+	directory := c.DefaultQuery("directory", "")
+	if directory == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Directory name is required"})
+		return
+	}
+
+	photoName := c.DefaultQuery("photo_name", "")
+	if photoName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Photo name is required"})
+		return
+	}
+
+	path := filepath.Join(uploadDir, directory, photoName)
+	fmt.Println(path)
+	err := os.Remove(path)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete file", "details": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"name": photoName})
+}
+
 func main() {
 	if _, err := os.Stat(uploadDir); os.IsNotExist(err) {
 		os.Mkdir(uploadDir, os.ModePerm)
@@ -141,6 +165,6 @@ func main() {
 	r.POST("/create-directory", makeDirectory)
 	r.GET("/directories", getDirectories)
 	r.GET("/directoryContent", getContent)
-
+	r.DELETE("/delete", deletePhoto)
 	r.Run(":8080")
 }
