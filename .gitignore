@@ -21,5 +21,6 @@
 go.work
 go.work.sum
 
+upload
 # env file
 .env
