@@ -84,7 +84,6 @@
 </div>
 
 <script>
-    // Funkcja ładowania katalogów
     function loadDirectories() {
         fetch('/directories')
             .then(response => response.json())
@@ -112,7 +111,6 @@
 
     loadDirectories();
 
-    // Tworzenie nowego katalogu
     document.getElementById('createDirectoryForm').addEventListener('submit', function(e) {
         e.preventDefault();
 
@@ -137,7 +135,6 @@
         });
     });
 
-    // Wysyłanie plików
     document.getElementById('submitBtn').addEventListener('click', function(e) {
         e.preventDefault();
 
@@ -166,17 +163,16 @@
         });
     });
 
-    // Zobacz zawartość katalogu
 document.getElementById('viewBtn').addEventListener('click', function(e) {
     e.preventDefault();
 
     const directory = document.getElementById("viewDirectory").value;
 
     fetch(`/directoryContent?directory=${directory}`)
-        .then(response => response.json())  // Oczekujemy JSON z listą obrazków
+        .then(response => response.json())
         .then(data => {
             if (data.files){
-                document.body.innerHTML = "";  // Zamieniamy całą zawartość strony na HTML od serwera
+                document.body.innerHTML = "";
                 window.directory = directory;
                 showImage(0, window.directory);
             } else {
@@ -188,15 +184,12 @@ document.getElementById('viewBtn').addEventListener('click', function(e) {
         });
 });
 
-// Funkcja do wyświetlania tylko jednego obrazka
 function showImage(index, directory) {
     fetch(`/directoryContent?directory=${directory}`)
-        .then(response => response.json())  // Oczekujemy JSON z listą obrazków
+        .then(response => response.json())
         .then(data => {
-            // Usuwamy całą zawartość strony
             document.body.innerHTML = "";
 
-            // Tworzymy widok tylko jednego obrazka
             const imageContainer = document.createElement("div");
 
             const imgElement = document.createElement("img");
@@ -206,28 +199,25 @@ function showImage(index, directory) {
             imgElement.style.margin = "10px";
             imageContainer.appendChild(imgElement);
 
-            // Przycisk powrotu do galerii
             const backButton = document.createElement("button");
             backButton.textContent = "Powrót do menu";
             backButton.onclick = function() {
-                window.location.href = "/";  // Powrót do strony głównej
+                window.location.href = "/";
             };
 
-            // Przycisk do następnego zdjęcia
             const nextButton = document.createElement("button");
             nextButton.textContent = "Następne zdjęcie";
             nextButton.onclick = function() {
                 if (index < data.files.length - 1) {
-                    showImage(index + 1, directory);  // Przejście do następnego zdjęcia
+                    showImage(index + 1, directory);
                 }
             };
 
-            // Przycisk do poprzedniego zdjęcia
             const prevButton = document.createElement("button");
             prevButton.textContent = "Poprzednie zdjęcie";
             prevButton.onclick = function() {
                 if (index > 0) {
-                    showImage(index - 1, directory);  // Przejście do poprzedniego zdjęcia
+                    showImage(index - 1, directory);
                 }
             };
 
@@ -259,13 +249,11 @@ function showImage(index, directory) {
                 }
             };
 
-            // Dodajemy przyciski do kontenera
             imageContainer.appendChild(backButton);
             imageContainer.appendChild(prevButton);
             imageContainer.appendChild(nextButton);
             imageContainer.appendChild(deleteButton);
 
-            // Wstawiamy obrazek i przyciski
             document.body.appendChild(imageContainer);
         })
         .catch(error => {
